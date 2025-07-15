@@ -1,9 +1,16 @@
-# docker/Dockerfile.client
-FROM node:18-alpine
+FROM node:16-alpine
+
 WORKDIR /app
-COPY ../client/package*.json ./
+
+COPY client/package*.json ./
+
 RUN npm install
-COPY ../client .
+
+COPY client/ .
+
 RUN npm run build
-EXPOSE 3000
-CMD ["npx", "serve", "-s", "build", "-l", "3000"]
+
+FROM nginx:alpine
+COPY --from=0 /app/build /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

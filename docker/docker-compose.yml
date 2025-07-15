@@ -7,7 +7,11 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.client
     ports:
-      - "3000:3000"
+      - "3000:80"
+    depends_on:
+      - server
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
 
   server:
     build:
@@ -15,5 +19,19 @@ services:
       dockerfile: docker/Dockerfile.server
     ports:
       - "5000:5000"
-    env_file:
-      - ../server/.env
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/ecommerce
+      - JWT_SECRET=your_jwt_secret
+      - NODE_ENV=development
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:
