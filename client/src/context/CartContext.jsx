@@ -184,12 +184,6 @@ export const CartProvider = ({ children }) => {
 
   const initiateCheckout = async (buyNowItem = null) => {
     // This would typically integrate with a payment gateway
-    const checkoutItems = buyNowItem ? [buyNowItem] : cart;
-    const total = buyNowItem 
-      ? buyNowItem.price * buyNowItem.quantity 
-      : getFinalTotal();
-
-    // Simulate checkout process
     try {
       toast.loading('Processing your order...');
       

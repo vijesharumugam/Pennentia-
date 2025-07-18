@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PlusIcon,
   PencilIcon,
@@ -11,55 +11,96 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: 'Wireless Headphones',
-      category: 'Electronics',
-      price: 2499,
-      stock: 45,
-      status: 'In Stock',
-    },
-    {
-      id: 2,
-      name: 'Smart Watch',
-      category: 'Electronics',
-      price: 3999,
-      stock: 30,
-      status: 'Low Stock',
-    },
-    {
-      id: 3,
-      name: 'Running Shoes',
-      category: 'Fashion',
-      price: 1999,
-      stock: 0,
-      status: 'Out of Stock',
-    },
-  ]);
+  // Fetch products from backend on mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        if (!res.ok) throw new Error('Failed to fetch products');
+        let data = await res.json();
+        data = data.map(product => ({ ...product, id: product._id }));
+        setProducts(data);
+      } catch (err) {
+        toast.error('Failed to fetch products');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
-  const handleAddProduct = (product) => {
-    // TODO: Implement API call
-    setProducts([...products, { ...product, id: products.length + 1 }]);
-    setShowAddModal(false);
-    toast.success('Product added successfully');
+  const handleAddProduct = async (product) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', product.name);
+      formData.append('category', product.category);
+      formData.append('price', product.price);
+      formData.append('stock', product.stock);
+      formData.append('description', product.description);
+      if (product.image) {
+        formData.append('image', product.image);
+      }
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to add product');
+      }
+      let newProduct = await response.json();
+      newProduct = { ...newProduct, id: newProduct._id };
+      setProducts([...products, newProduct]);
+      setShowAddModal(false);
+      toast.success('Product added successfully');
+    } catch (error) {
+      toast.error('Error adding product');
+    }
   };
 
-  const handleEditProduct = (product) => {
-    // TODO: Implement API call
-    setProducts(
-      products.map((p) => (p.id === product.id ? { ...product } : p))
-    );
-    setEditingProduct(null);
-    toast.success('Product updated successfully');
+  const handleEditProduct = async (product) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', product.name);
+      formData.append('category', product.category);
+      formData.append('price', product.price);
+      formData.append('stock', product.stock);
+      formData.append('description', product.description);
+      if (product.image instanceof File) {
+        formData.append('image', product.image);
+      }
+      const response = await fetch(`/api/products/${product._id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update product');
+      }
+      let updatedProduct = await response.json();
+      updatedProduct = { ...updatedProduct, id: updatedProduct._id };
+      setProducts(products.map((p) => (p._id === updatedProduct._id ? updatedProduct : p)));
+      setEditingProduct(null);
+      toast.success('Product updated successfully');
+    } catch (error) {
+      toast.error('Error updating product');
+    }
   };
 
-  const handleDeleteProduct = (productId) => {
-    // TODO: Implement API call
-    setProducts(products.filter((p) => p.id !== productId));
-    toast.success('Product deleted successfully');
+  const handleDeleteProduct = async (productId) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete product');
+      }
+      setProducts(products.filter((p) => p.id !== productId));
+      toast.success('Product deleted successfully');
+    } catch (error) {
+      toast.error('Error deleting product');
+    }
   };
 
   const ProductModal = ({ product, onSave, onClose }) => {
@@ -164,6 +205,20 @@ const Products = () => {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Product Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  setFormData({ ...formData, image: e.target.files[0] });
+                }}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required={!product}
+              />
+            </div>
             <div className="flex justify-end gap-4 mt-6">
               <button
                 type="button"
@@ -238,61 +293,76 @@ const Products = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products
-              .filter((product) =>
-                product.name
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase())
-              )
-              .map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {product.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {product.category}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      ₹{product.price.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{product.stock}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        product.status === 'In Stock'
-                          ? 'bg-green-100 text-green-800'
-                          : product.status === 'Low Stock'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {product.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => setEditingProduct(product)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            {loading ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-4 text-center">
+                  Loading...
+                </td>
+              </tr>
+            ) : products.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  No products found.
+                </td>
+              </tr>
+            ) : (
+              products
+                .filter((product) =>
+                  product.name
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase())
+                )
+                .map((product) => (
+                  <tr key={product._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        <img src={product.image} alt={product.name} className="h-10 w-10 object-cover rounded mr-2 inline-block" />
+                        {product.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {product.category}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        ₹{product.price.toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{product.stock}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          product.status === 'In Stock'
+                            ? 'bg-green-100 text-green-800'
+                            : product.status === 'Low Stock'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {product.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => setEditingProduct(product)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product._id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+            )}
           </tbody>
         </table>
       </div>

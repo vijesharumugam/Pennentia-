@@ -14,7 +14,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import ProductCard from '../components/ProductCard';
-import { mockProducts } from '../mockData/products';
 import ProfileSettings from '../components/ProfileSettings';
 import Wishlist from '../components/Wishlist';
 
@@ -85,8 +84,15 @@ const Home = () => {
       try {
         setLoading(true);
         setError(null);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProducts(mockProducts);
+        const response = await fetch('/api/products');
+        if (!response.ok) throw new Error('Failed to fetch products');
+        let data = await response.json();
+        // Map _id to id for frontend compatibility
+        data = data.map(product => ({
+          ...product,
+          id: product._id,
+        }));
+        setProducts(data);
       } catch (err) {
         setError('Failed to fetch products. Please try again later.');
         console.error('Error fetching products:', err);
@@ -94,7 +100,6 @@ const Home = () => {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 

@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 
 const ProfileSettings = ({ onClose }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('profile');
   const [profileImage, setProfileImage] = useState(null);
   const [formData, setFormData] = useState({
     fullName: 'John Doe',
@@ -59,11 +58,6 @@ const ProfileSettings = ({ onClose }) => {
     e.preventDefault();
     // TODO: Implement profile update
     console.log('Profile data:', formData);
-  };
-
-  const addPaymentMethod = () => {
-    // TODO: Implement payment method addition
-    console.log('Adding payment method');
   };
 
   const handleAdminPanelClick = () => {

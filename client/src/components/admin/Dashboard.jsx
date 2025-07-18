@@ -1,72 +1,89 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CurrencyRupeeIcon,
   ShoppingBagIcon,
   UserGroupIcon,
   ChartBarIcon,
+  CubeIcon,
 } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
-  // Mock data - replace with actual API calls
+  const [productCount, setProductCount] = useState(0);
+  const [orderCount, setOrderCount] = useState(0);
+  const [customerCount, setCustomerCount] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Fetch products
+        const productsRes = await fetch('/api/products');
+        if (!productsRes.ok) throw new Error('Failed to fetch products');
+        const products = await productsRes.json();
+        setProductCount(products.length);
+        // Fetch orders
+        const ordersRes = await fetch('/api/orders');
+        if (!ordersRes.ok) throw new Error('Failed to fetch orders');
+        const orders = await ordersRes.json();
+        setOrderCount(orders.length);
+        setRecentOrders(orders.slice(0, 5));
+        setTotalRevenue(orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0));
+        // Fetch users
+        const usersRes = await fetch('/api/users');
+        if (!usersRes.ok) throw new Error('Failed to fetch users');
+        const users = await usersRes.json();
+        setCustomerCount(users.length);
+      } catch (err) {
+        setError('Failed to load dashboard data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
   const stats = [
     {
+      name: 'Total Products',
+      value: loading ? 'Loading...' : productCount,
+      icon: CubeIcon,
+      change: '',
+      changeType: 'positive',
+    },
+    {
       name: 'Total Revenue',
-      value: '₹2,45,678',
+      value: loading ? 'Loading...' : `₹${totalRevenue.toLocaleString()}`,
       icon: CurrencyRupeeIcon,
-      change: '+12.5%',
+      change: '',
       changeType: 'positive',
     },
     {
       name: 'Total Orders',
-      value: '156',
+      value: loading ? 'Loading...' : orderCount,
       icon: ShoppingBagIcon,
-      change: '+8.2%',
+      change: '',
       changeType: 'positive',
     },
     {
       name: 'Total Customers',
-      value: '2,456',
+      value: loading ? 'Loading...' : customerCount,
       icon: UserGroupIcon,
-      change: '+15.3%',
+      change: '',
       changeType: 'positive',
-    },
-    {
-      name: 'Conversion Rate',
-      value: '3.2%',
-      icon: ChartBarIcon,
-      change: '-2.1%',
-      changeType: 'negative',
-    },
-  ];
-
-  const recentOrders = [
-    {
-      id: 'ORD123',
-      customer: 'John Doe',
-      date: '2024-03-20',
-      amount: '₹4,599',
-      status: 'Delivered',
-    },
-    {
-      id: 'ORD124',
-      customer: 'Jane Smith',
-      date: '2024-03-19',
-      amount: '₹2,899',
-      status: 'Processing',
-    },
-    {
-      id: 'ORD125',
-      customer: 'Mike Johnson',
-      date: '2024-03-19',
-      amount: '₹1,299',
-      status: 'Pending',
     },
   ];
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">Dashboard</h1>
-
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat) => {
@@ -80,13 +97,7 @@ const Dashboard = () => {
                 <div className="p-2 bg-blue-50 rounded-lg">
                   <Icon className="h-6 w-6 text-blue-600" />
                 </div>
-                <span
-                  className={`text-sm font-medium ${
-                    stat.changeType === 'positive'
-                      ? 'text-green-600'
-                      : 'text-red-600'
-                  }`}
-                >
+                <span className="text-sm font-medium text-green-600">
                   {stat.change}
                 </span>
               </div>
@@ -126,30 +137,32 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
+              {loading ? (
+                <tr><td colSpan="5" className="text-center py-6">Loading...</td></tr>
+              ) : recentOrders.length === 0 ? (
+                <tr><td colSpan="5" className="text-center py-6 text-gray-500">No orders found.</td></tr>
+              ) : recentOrders.map((order) => (
+                <tr key={order._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                    {order.id}
+                    {order._id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.customer}
+                    {order.customerName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.date}
+                    {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {order.amount}
+                    ₹{order.totalAmount?.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        order.status === 'Delivered'
-                          ? 'bg-green-100 text-green-800'
-                          : order.status === 'Processing'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      order.status === 'Delivered'
+                        ? 'bg-green-100 text-green-800'
+                        : order.status === 'Processing'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                       {order.status}
                     </span>
                   </td>

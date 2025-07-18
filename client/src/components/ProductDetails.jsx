@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import axios from 'axios';
 import { 
   ArrowLeftIcon,
   ShoppingCartIcon,

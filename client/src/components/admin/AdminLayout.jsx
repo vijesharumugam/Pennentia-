@@ -13,7 +13,7 @@ import { toast } from 'react-hot-toast';
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen] = useState(true);
 
   const navigationItems = [
     { name: 'Dashboard', path: '/admin', icon: ChartBarIcon },
